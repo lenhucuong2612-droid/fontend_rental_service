@@ -10,17 +10,36 @@ import BookingWidget from '../components/detail/BookingWidget';
 import SupportGuide from '../components/detail/SupportGuide';
 import TrustSection from '../components/detail/TrustSection';
 import RelatedVehicles from '../components/detail/RelatedVehicles';
-import { carsData } from '../data/cars';
+import { apiService } from '../services/mockApi';
 
 export default function CarDetail() {
   const { id } = useParams();
   const [car, setCar] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const foundCar = carsData.find(c => c.id === parseInt(id));
-    setCar(foundCar);
+    const fetchCar = async () => {
+      setLoading(true);
+      try {
+        const data = await apiService.getCarById(id);
+        setCar(data);
+      } catch (error) {
+        console.error("Failed to fetch car detail:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCar();
     window.scrollTo(0, 0);
   }, [id]);
+
+  if (loading) {
+    return (
+      <div className="bg-brand-black min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-brand-gold border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (!car) {
     return (

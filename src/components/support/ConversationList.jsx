@@ -1,13 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, MessageSquare, ChevronRight, Plus, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
-
-const conversations = [
-  { id: 1, title: 'Mercedes E300 Rental Extension', dept: 'Active Trip', preview: 'Your extension has been confirmed.', time: '2m ago', status: 'resolved', unread: 0 },
-  { id: 2, title: 'Bluetooth Connection Guide', dept: 'Vehicle Support', preview: 'Try pressing the sync button for 3 sec.', time: '1h ago', status: 'resolved', unread: 0 },
-  { id: 3, title: 'Deposit Payment Confirmation', dept: 'Billing', preview: 'Deposit of $500 received successfully.', time: 'Yesterday', status: 'resolved', unread: 0 },
-  { id: 4, title: 'Roadside Support – Da Lat', dept: 'Emergency', preview: 'Team arrived. Issue resolved.', time: '3 days ago', status: 'resolved', unread: 0 },
-  { id: 5, title: 'New Booking Inquiry – BMW M8', dept: 'Sales', preview: 'Vehicle is available for your dates.', time: '5 days ago', status: 'resolved', unread: 0 },
-];
+import { apiService } from '../../services/mockApi';
 
 const deptColors = {
   'Active Trip': 'text-brand-gold border-brand-gold/30 bg-brand-gold/10',
@@ -18,7 +11,24 @@ const deptColors = {
 };
 
 export default function ConversationList({ activeChatId, onSelectConversation, onNewChat }) {
+  const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const data = await apiService.getConversations();
+        setConversations(data);
+      } catch (error) {
+        console.error("Failed to fetch conversations:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchConversations();
+  }, []);
+
   const filtered = conversations.filter(c =>
     c.title.toLowerCase().includes(query.toLowerCase())
   );
@@ -50,7 +60,13 @@ export default function ConversationList({ activeChatId, onSelectConversation, o
 
       {/* Conversation Items */}
       <div className="flex-1 overflow-y-auto space-y-1 p-3">
-        {filtered.map(conv => (
+        {loading ? (
+          <div className="p-4 space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-20 bg-white/5 rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        ) : filtered.map(conv => (
           <button
             key={conv.id}
             onClick={() => onSelectConversation(conv.id)}

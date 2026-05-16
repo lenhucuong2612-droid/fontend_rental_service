@@ -4,10 +4,12 @@ import Footer from '../components/Footer';
 import SidebarFilter from '../components/collection/SidebarFilter';
 import TopControlBar from '../components/collection/TopControlBar';
 import VehicleGrid from '../components/collection/VehicleGrid';
-import { carsData } from '../data/cars';
+import { apiService } from '../services/mockApi';
 import { motion } from 'framer-motion';
 
 export default function Collection() {
+  const [cars, setCars] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sortBy, setSortBy] = useState('recommended');
   const [filters, setFilters] = useState({
@@ -15,6 +17,21 @@ export default function Collection() {
     seats: [],
     priceRange: [0, 500]
   });
+
+  useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        const data = await apiService.getCars();
+        setCars(data);
+      } catch (error) {
+        console.error("Failed to fetch cars:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCars();
+    window.scrollTo(0, 0);
+  }, []);
 
   const clearFilters = () => {
     setFilters({
@@ -26,7 +43,7 @@ export default function Collection() {
   };
 
   const filteredCars = useMemo(() => {
-    let result = carsData.filter((car) => {
+    let result = [...cars].filter((car) => {
       const brandMatch = filters.brands.length === 0 || filters.brands.includes(car.brand);
       const seatMatch = filters.seats.length === 0 || filters.seats.includes(car.seats);
       const priceMatch = car.price >= filters.priceRange[0] && car.price <= filters.priceRange[1];
@@ -54,7 +71,7 @@ export default function Collection() {
     }
 
     return result;
-  }, [filters, sortBy]);
+  }, [cars, filters, sortBy]);
 
   // Scroll to top on mount
   useEffect(() => {
@@ -99,17 +116,27 @@ export default function Collection() {
 
           {/* Grid Area */}
           <div className="flex-1">
-            <TopControlBar 
-              count={filteredCars.length}
-              onToggleSidebar={() => setIsSidebarOpen(true)}
-              sortBy={sortBy}
-              setSortBy={setSortBy}
-            />
-            
-            <VehicleGrid 
-              cars={filteredCars} 
-              onReset={clearFilters}
-            />
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-20">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="bg-brand-charcoal h-96 rounded-[40px] animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <>
+                <TopControlBar 
+                  count={filteredCars.length}
+                  onToggleSidebar={() => setIsSidebarOpen(true)}
+                  sortBy={sortBy}
+                  setSortBy={setSortBy}
+                />
+                
+                <VehicleGrid 
+                  cars={filteredCars} 
+                  onReset={clearFilters}
+                />
+              </>
+            )}
           </div>
 
         </div>

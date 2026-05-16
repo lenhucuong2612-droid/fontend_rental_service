@@ -9,18 +9,39 @@ import EmergencySOS from '../components/trip/EmergencySOS';
 import ConciergeMap from '../components/trip/ConciergeMap';
 import RentalExtension from '../components/trip/RentalExtension';
 import SmartNotifications from '../components/trip/SmartNotifications';
-import { carsData } from '../data/cars';
+import { apiService } from '../services/mockApi';
 
 export default function MyTrip() {
-  const [car, setCar] = useState(null);
+  const [trip, setTrip] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Mocking an active rental with the first car (Maybach)
-    setCar(carsData[0]);
+    const fetchTrip = async () => {
+      try {
+        const data = await apiService.getActiveTrip();
+        setTrip(data);
+      } catch (error) {
+        console.error("Failed to fetch trip:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTrip();
     window.scrollTo(0, 0);
   }, []);
 
-  if (!car) return null;
+  if (loading) {
+    return (
+      <div className="bg-brand-black min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-brand-gold border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!trip) return null;
+
+  const { car } = trip;
 
   return (
     <div className="bg-brand-black min-h-screen selection:bg-brand-gold selection:text-brand-black">

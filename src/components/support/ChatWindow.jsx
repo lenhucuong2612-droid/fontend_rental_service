@@ -4,26 +4,7 @@ import {
   Send, Paperclip, Image, MapPin, Mic, Phone,
   ChevronDown, CheckCheck, Clock, Star, X, Smile
 } from 'lucide-react';
-
-const initialMessages = [
-  {
-    id: 1, from: 'agent', time: '10:30 AM',
-    text: "Hello, I'm Minh — your journey support specialist. How can I assist you today? 😊"
-  },
-  {
-    id: 2, from: 'user', time: '10:31 AM',
-    text: "Hi, I'd like to extend my current rental by 2 more days. Is that possible?"
-  },
-  {
-    id: 3, from: 'agent', time: '10:31 AM',
-    text: "Of course! Let me check availability for your Mercedes S-Class Maybach. One moment please."
-  },
-  {
-    id: 4, from: 'agent', time: '10:32 AM',
-    text: "Great news — the vehicle is available for extension. Your new return date would be Friday, May 17. The additional cost is $2,700. Shall I confirm the extension?",
-    status: 'seen'
-  }
-];
+import { apiService } from '../../services/mockApi';
 
 function TypingIndicator() {
   return (
@@ -92,13 +73,39 @@ function RatingModal({ onClose }) {
   );
 }
 
-export default function ChatWindow({ category }) {
-  const [messages, setMessages] = useState(initialMessages);
+export default function ChatWindow({ category, activeChatId }) {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [locationShared, setLocationShared] = useState(false);
   const bottomRef = useRef(null);
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!activeChatId) {
+        setMessages([
+          {
+            id: 'welcome', from: 'agent', time: 'Just now',
+            text: `Hello! I'm Minh, your support specialist for ${category || 'general inquiries'}. How can I help you?`
+          }
+        ]);
+        return;
+      }
+      
+      setLoading(true);
+      try {
+        const data = await apiService.getMessagesByChatId(activeChatId);
+        setMessages(data);
+      } catch (error) {
+        console.error("Failed to fetch messages:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMessages();
+  }, [activeChatId, category]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -169,60 +176,71 @@ export default function ChatWindow({ category }) {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-8 space-y-6">
-        <AnimatePresence initial={false}>
-          {messages.map(msg => (
-            <motion.div
-              key={msg.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex items-end gap-3 ${msg.from === 'user' ? 'flex-row-reverse' : ''}`}
-            >
-              {msg.from === 'agent' && (
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100&h=100"
-                  className="w-8 h-8 rounded-full object-cover ring-1 ring-white/10 shrink-0"
-                  alt="Agent"
-                />
-              )}
-              <div className={`flex flex-col ${msg.from === 'user' ? 'items-end' : 'items-start'} max-w-sm md:max-w-md`}>
-                {msg.isLocation ? (
-                  <div className="bg-brand-charcoal border border-white/10 rounded-2xl rounded-br-none overflow-hidden w-72">
-                    <div className="h-32 bg-brand-gold/5 flex items-center justify-center border-b border-white/5">
-                      <div className="flex flex-col items-center gap-2 text-brand-gold">
-                        <MapPin className="w-8 h-8" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Location Shared</span>
+        {loading ? (
+          <div className="flex flex-col gap-6">
+            {[1, 2].map(i => (
+              <div key={i} className={`flex gap-3 ${i % 2 === 0 ? 'flex-row-reverse' : ''}`}>
+                <div className="w-8 h-8 rounded-full bg-white/5 animate-pulse shrink-0" />
+                <div className="w-64 h-12 bg-white/5 rounded-2xl animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <AnimatePresence initial={false}>
+            {messages.map(msg => (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex items-end gap-3 ${msg.from === 'user' ? 'flex-row-reverse' : ''}`}
+              >
+                {msg.from === 'agent' && (
+                  <img
+                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100&h=100"
+                    className="w-8 h-8 rounded-full object-cover ring-1 ring-white/10 shrink-0"
+                    alt="Agent"
+                  />
+                )}
+                <div className={`flex flex-col ${msg.from === 'user' ? 'items-end' : 'items-start'} max-w-sm md:max-w-md`}>
+                  {msg.isLocation ? (
+                    <div className="bg-brand-charcoal border border-white/10 rounded-2xl rounded-br-none overflow-hidden w-72">
+                      <div className="h-32 bg-brand-gold/5 flex items-center justify-center border-b border-white/5">
+                        <div className="flex flex-col items-center gap-2 text-brand-gold">
+                          <MapPin className="w-8 h-8" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest">Location Shared</span>
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <p className="text-white text-xs font-bold">{msg.address}</p>
+                        <p className="text-white/30 text-[9px] uppercase font-bold mt-1">{msg.coords}</p>
                       </div>
                     </div>
-                    <div className="p-4">
-                      <p className="text-white text-xs font-bold">{msg.address}</p>
-                      <p className="text-white/30 text-[9px] uppercase font-bold mt-1">{msg.coords}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className={`px-5 py-4 rounded-2xl text-sm leading-relaxed ${
-                    msg.from === 'user'
-                      ? 'bg-brand-gold text-brand-black rounded-br-none font-medium'
-                      : 'bg-brand-charcoal border border-white/5 text-white rounded-bl-none'
-                  }`}>
-                    {msg.text}
-                  </div>
-                )}
-                <div className="flex items-center gap-1.5 mt-1.5 px-1">
-                  <span className="text-[9px] text-white/20 font-bold">{msg.time}</span>
-                  {msg.from === 'user' && msg.status === 'seen' && (
-                    <div className="flex items-center gap-1 text-brand-gold text-[9px] font-bold">
-                      <CheckCheck className="w-3 h-3" />
-                      Seen
+                  ) : (
+                    <div className={`px-5 py-4 rounded-2xl text-sm leading-relaxed ${
+                      msg.from === 'user'
+                        ? 'bg-brand-gold text-brand-black rounded-br-none font-medium'
+                        : 'bg-brand-charcoal border border-white/5 text-white rounded-bl-none'
+                    }`}>
+                      {msg.text}
                     </div>
                   )}
-                  {msg.from === 'user' && msg.status === 'sent' && (
-                    <CheckCheck className="w-3 h-3 text-white/20" />
-                  )}
+                  <div className="flex items-center gap-1.5 mt-1.5 px-1">
+                    <span className="text-[9px] text-white/20 font-bold">{msg.time}</span>
+                    {msg.from === 'user' && msg.status === 'seen' && (
+                      <div className="flex items-center gap-1 text-brand-gold text-[9px] font-bold">
+                        <CheckCheck className="w-3 h-3" />
+                        Seen
+                      </div>
+                    )}
+                    {msg.from === 'user' && msg.status === 'sent' && (
+                      <CheckCheck className="w-3 h-3 text-white/20" />
+                    )}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        )}
 
         <AnimatePresence>
           {isTyping && (

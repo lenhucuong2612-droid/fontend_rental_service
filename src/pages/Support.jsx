@@ -96,7 +96,7 @@ export default function Support() {
                 exit={{ opacity: 0 }}
                 className="flex-1 overflow-hidden flex flex-col"
               >
-                <ChatWindow category={category} />
+                <ChatWindow category={category} activeChatId={activeChatId} />
               </motion.div>
             ) : (
               <motion.div
